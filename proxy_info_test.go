@@ -16,7 +16,7 @@ func TestIsSecure(t *testing.T) {
 		"no proxyInfo, TLS":       {tls: &tls.ConnectionState{}, want: true},
 		"proxyInfo: secure=true":  {pi: &proxyInfo{secure: true}, want: true},
 		"proxyInfo: secure=false": {pi: &proxyInfo{secure: false}},
-		"proxyInfo overrides TLS": {tls: &tls.ConnectionState{}, pi: &proxyInfo{secure: false}},
+		"proxyInfo: secure=false, TLS": {tls: &tls.ConnectionState{}, pi: &proxyInfo{secure: false}},
 	}
 
 	for name, test := range tests {

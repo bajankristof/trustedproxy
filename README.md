@@ -4,6 +4,7 @@
 
 You can use `trustedproxy.IsSecure(r)` to check whether the request can be considered secure.
 > The request can only be considered secure if it came from a trusted proxy with the X-Forwarded-Proto header set to "https" or if the request did NOT come from a trusted proxy but was made over HTTPS.
+
 You can also use `trustedproxy.RemoteAddr(r)` to get the remote address of the reverse proxy that forwarded the request.
 > If the request did NOT come from a trusted proxy, this function will return the same value as `r.RemoteAddr`.
 
