@@ -25,8 +25,9 @@ func main() {
 	}
 
 	http.Handle("/", tp.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.RemoteAddr) // Prints the real client IP address if the request is coming from a trusted proxy
-		fmt.Println(r.URL.Scheme) // Prints the real request scheme (http or https) if the request is coming from a trusted proxy
+		fmt.Println(r.RemoteAddr)               // Prints the real client IP address
+		fmt.Println(trustedproxy.RemoteAddr(r)) // Prints the remote address of the reverse proxy
+		fmt.Println(trustedproxy.IsSecure(r))   // Prints whether the request can be considered secure
 		if _, err := w.Write([]byte("Hello, World!")); err != nil {
 			slog.Error(err.Error())
 		}

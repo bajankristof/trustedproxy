@@ -126,7 +126,7 @@ func (tp *TrustedProxy) Contains(ip netip.Addr) bool {
 	return tp.contains(ip)
 }
 
-// Handler returns a handler that updates the request's RemoteAddr and URL.Scheme
+// Handler returns a handler that updates the request's RemoteAddr field and its context
 // based on the X-Forwarded-For and X-Forwarded-Proto headers
 // if the remote address of the request is in the list of trusted proxies
 // before invoking the handler h.
@@ -137,19 +137,27 @@ func (tp *TrustedProxy) Handler(h http.Handler) http.Handler {
 			return
 		}
 
-		r = r.Clone(r.Context())
-
+		remoteAddr := r.RemoteAddr
 		if v := r.Header.Get("X-Forwarded-For"); v != "" {
 			if ip, ok := tp.clientIP(v); ok {
-				r.RemoteAddr = net.JoinHostPort(ip.String(), "0")
+				remoteAddr = net.JoinHostPort(ip.String(), "0")
 			}
 		}
 
+		secure := r.TLS != nil
 		if v := r.Header.Get("X-Forwarded-Proto"); v != "" {
-			if v == "http" || v == "https" {
-				r.URL.Scheme = v
+			switch v {
+			case "https":
+				secure = true
+			case "http":
+				secure = false
 			}
 		}
+
+		r = withProxyInfo(r, &proxyInfo{
+			secure:     secure,
+			remoteAddr: remoteAddr,
+		})
 
 		h.ServeHTTP(w, r)
 	})

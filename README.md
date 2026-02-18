@@ -1,6 +1,11 @@
 # Trusted proxy net/http middleware
 
-[bajankristof/trustedproxy](https://github.com/bajankristof/trustedproxy) is a net/http middleware for Go that helps you get the real client IP address (using the rightmost non-trusted IP algorithm) and scheme when your application is behind a trusted proxy. It uses a list of trusted proxy IP address prefixes to determine if the request is coming from a trusted proxy and then updates the request's RemoteAddr and URL.Scheme based on the X-Forwarded-For and X-Forwarded-Proto headers.
+[bajankristof/trustedproxy](https://github.com/bajankristof/trustedproxy) is a net/http middleware for Go that helps you get the real client IP address (using the rightmost non-trusted IP algorithm) and scheme when your application is behind a trusted proxy. It uses a list of trusted proxy IP address prefixes to determine if the request is coming from a trusted proxy and then updates the request's RemoteAddr based on the X-Forwarded-For header and marks the request as secure if the X-Forwarded-Proto header indicates that the original request was made over HTTPS.
+
+You can use `trustedproxy.IsSecure(r)` to check whether the request can be considered secure.
+> The request can only be considered secure if it came from a trusted proxy with the X-Forwarded-Proto header set to "https" or if the request did NOT come from a trusted proxy but was made over HTTPS.
+You can also use `trustedproxy.RemoteAddr(r)` to get the remote address of the reverse proxy that forwarded the request.
+> If the request did NOT come from a trusted proxy, this function will return the same value as `r.RemoteAddr`.
 
 The middleware follows the standard net/http middleware pattern and can be easily integrated into your existing Go web application.
 
@@ -40,8 +45,9 @@ func main() {
 	}
 
 	http.Handle("/", tp.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.RemoteAddr) // Prints the real client IP address if the request is coming from a trusted proxy
-		fmt.Println(r.URL.Scheme) // Prints the real request scheme (http or https) if the request is coming from a trusted proxy
+		fmt.Println(r.RemoteAddr)               // Prints the real client IP address
+		fmt.Println(trustedproxy.RemoteAddr(r)) // Prints the remote address of the reverse proxy
+		fmt.Println(trustedproxy.IsSecure(r))   // Prints whether the request can be considered secure
 		if _, err := w.Write([]byte("Hello, World!")); err != nil {
 			slog.Error(err.Error())
 		}

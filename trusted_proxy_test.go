@@ -261,7 +261,7 @@ func TestTrustedProxy_Handler(t *testing.T) {
 		remoteAddr string
 		headers    map[string]string
 		wantAddr   string
-		wantScheme string
+		wantSecure bool
 	}{
 		"untrusted proxy": {
 			prefixes:   []netip.Prefix{netip.MustParsePrefix("10.0.0.0/8")},
@@ -270,8 +270,7 @@ func TestTrustedProxy_Handler(t *testing.T) {
 				"X-Forwarded-For":   "1.2.3.4",
 				"X-Forwarded-Proto": "https",
 			},
-			wantAddr:   "192.168.1.1:12345",
-			wantScheme: "",
+			wantAddr: "192.168.1.1:12345",
 		},
 		"trusted proxy: X-Forwarded-For single IP": {
 			prefixes:   []netip.Prefix{netip.MustParsePrefix("192.168.0.0/16")},
@@ -314,7 +313,7 @@ func TestTrustedProxy_Handler(t *testing.T) {
 			remoteAddr: "192.168.1.1:12345",
 			headers:    map[string]string{"X-Forwarded-Proto": "https"},
 			wantAddr:   "192.168.1.1:12345",
-			wantScheme: "https",
+			wantSecure: true,
 		},
 		"trusted proxy: all supported headers": {
 			prefixes:   []netip.Prefix{netip.MustParsePrefix("192.168.0.0/16")},
@@ -324,14 +323,13 @@ func TestTrustedProxy_Handler(t *testing.T) {
 				"X-Forwarded-Proto": "https",
 			},
 			wantAddr:   "1.2.3.4:0",
-			wantScheme: "https",
+			wantSecure: true,
 		},
 		"trusted proxy: no headers": {
 			prefixes:   []netip.Prefix{netip.MustParsePrefix("192.168.0.0/16")},
 			remoteAddr: "192.168.1.1:12345",
 			headers:    map[string]string{},
 			wantAddr:   "192.168.1.1:12345",
-			wantScheme: "",
 		},
 	}
 
@@ -339,10 +337,11 @@ func TestTrustedProxy_Handler(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			tp := &TrustedProxy{prefixes: test.prefixes}
 
-			var gotAddr, gotScheme string
+			var gotAddr string
+			var gotSecure bool
 			inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				gotAddr = r.RemoteAddr
-				gotScheme = r.URL.Scheme
+				gotSecure = IsSecure(r)
 			})
 
 			handler := tp.Handler(inner)
@@ -361,8 +360,8 @@ func TestTrustedProxy_Handler(t *testing.T) {
 			if test.wantAddr != "" && gotAddr != test.wantAddr {
 				t.Errorf("RemoteAddr: got %q, want %q", gotAddr, test.wantAddr)
 			}
-			if gotScheme != test.wantScheme {
-				t.Errorf("URL.Scheme: got %q, want %q", gotScheme, test.wantScheme)
+			if gotSecure != test.wantSecure {
+				t.Errorf("IsSecure: got %v, want %v", gotSecure, test.wantSecure)
 			}
 		})
 	}
