@@ -8,10 +8,10 @@ import (
 type contextKey struct{}
 
 var (
-	proxyInfoKey = contextKey{}
+	infoKey = contextKey{}
 )
 
-type proxyInfo struct {
+type info struct {
 	secure     bool
 	remoteAddr string
 }
@@ -23,7 +23,7 @@ type proxyInfo struct {
 // When the request came from a trusted proxy, r.TLS is ignored —
 // only X-Forwarded-Proto determines the result.
 func IsSecure(r *http.Request) bool {
-	if pi, ok := r.Context().Value(proxyInfoKey).(*proxyInfo); ok {
+	if pi, ok := r.Context().Value(infoKey).(*info); ok {
 		return pi.secure
 	}
 
@@ -33,18 +33,28 @@ func IsSecure(r *http.Request) bool {
 // RemoteAddr returns the remote address of the reverse proxy that forwarded the request.
 // If the request did not come from a trusted proxy, it returns the same value as r.RemoteAddr.
 func RemoteAddr(r *http.Request) string {
-	if pi, ok := r.Context().Value(proxyInfoKey).(*proxyInfo); ok {
+	if pi, ok := r.Context().Value(infoKey).(*info); ok {
 		return pi.remoteAddr
 	}
 
 	return r.RemoteAddr
 }
 
-// withProxyInfo returns a copy of the request
-// with the given proxyInfo added to its context
+// Scheme returns the scheme of the request, either "http" or "https".
+// It returns "https" if the request is considered secure, and "http" otherwise.
+func Scheme(r *http.Request) string {
+	if IsSecure(r) {
+		return "https"
+	}
+
+	return "http"
+}
+
+// withInfo returns a copy of the request
+// with the given info added to its context
 // and its RemoteAddr field set to the remote address of the proxy.
-func withProxyInfo(r *http.Request, pi *proxyInfo) *http.Request {
-	r = r.WithContext(context.WithValue(r.Context(), proxyInfoKey, pi))
+func withInfo(r *http.Request, pi *info) *http.Request {
+	r = r.WithContext(context.WithValue(r.Context(), infoKey, pi))
 	r.RemoteAddr = pi.remoteAddr
 	return r
 }

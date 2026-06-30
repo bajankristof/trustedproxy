@@ -31,6 +31,16 @@ type TrustedProxy struct {
 	prefixes []netip.Prefix
 }
 
+// Must creates a new TrustedProxy with the given string IP prefixes or IPs
+// and panics if any of the prefixes or IPs are invalid.
+func Must(opts ...Option) *TrustedProxy {
+	tp, err := New(opts...)
+	if err != nil {
+		panic(err)
+	}
+	return tp
+}
+
 // New creates a new TrustedProxy with the given string IP prefixes or IPs.
 func New(opts ...Option) (*TrustedProxy, error) {
 	tp := &TrustedProxy{}
@@ -154,7 +164,7 @@ func (tp *TrustedProxy) Handler(h http.Handler) http.Handler {
 			}
 		}
 
-		r = withProxyInfo(r, &proxyInfo{
+		r = withInfo(r, &info{
 			secure:     secure,
 			remoteAddr: remoteAddr,
 		})
